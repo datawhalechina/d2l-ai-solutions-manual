@@ -1,0 +1,5 @@
+id,MSSubClass,MSZoning,LotFrontage,NumRooms,Alley,Price
+1,60,RL,65,NA,Pave,127500
+2,70,NA,70,2,NA,106000
+3,NA,NA,80,4,NA,178100
+4,NA,NA,90,NA,NA,140000
