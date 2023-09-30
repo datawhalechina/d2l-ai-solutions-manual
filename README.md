@@ -76,7 +76,7 @@ requirements.txt-----------------------------------运行环境依赖包
 ## 致谢
 
 **核心贡献者**
-- [宋志学-项目负责人](https://github.com/KMnO4-zx)（Datawhale成员-河南理工大学-AI兴趣爱好者）
+- [宋志学-项目负责人](https://github.com/KMnO4-zx)（Datawhale成员-河南理工大学）
 - [胡锐锋-项目发起人](https://github.com/Relph1119)（Datawhale成员-华东交通大学-系统架构设计师）
 - [韩颐堃](https://github.com/YikunHan42)（内容创作者-Datawhale成员）
 - [毛瑞盈](https://github.com/catcooc)（内容创作者）
