@@ -83,7 +83,7 @@ requirements.txt-----------------------------------运行环境依赖包
 - [陈可为](https://github.com/Ethan-Chen-plus)（内容创作者-Datawhale成员）
 - [王振凯](https://github.com/Rookie-Kai)（内容创作者-Datawhale成员）
 - [崔腾松](https://github.com/2951121599)（Datawhale成员-whale量化开源项目负责人）
-- [徐韵婉](https://github.com/xyw1)（内容创作者-Datawhale成员-读书爱好者）
+- [徐韵婉](https://github.com/xyw1)（内容创作者-Datawhale成员）
 - [张银晗](https://github.com/YinHan-Zhang)（内容创作者-Datawhale成员）
 - [邹雨衡](https://github.com/logan-zou)（Datawhale成员-对外经济贸易大学研究生）
 - [刘旭](https://github.com/liuxu-manifold)（内容创作者）
