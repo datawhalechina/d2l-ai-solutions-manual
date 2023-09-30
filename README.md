@@ -86,9 +86,9 @@ requirements.txt-----------------------------------运行环境依赖包
 - [徐韵婉](https://github.com/xyw1)（内容创作者-Datawhale成员）
 - [张银晗](https://github.com/YinHan-Zhang)（内容创作者-Datawhale成员）
 - [邹雨衡](https://github.com/logan-zou)（Datawhale成员-对外经济贸易大学研究生）
-- [刘旭](https://github.com/liuxu-manifold)（内容创作者）
-- [曾莹](https://github.com/zengying321)（内容创作者）
-- [肖鸿儒](https://github.com/Hongru0306)（内容创作者）
+- [刘旭](https://github.com/liuxu-manifold)（内容创作者-Datawhale成员-深圳大学）
+- [曾莹](https://github.com/zengying321)（内容创作者-深圳大学）
+- [肖鸿儒](https://github.com/Hongru0306)（内容创作者-同济大学）
 - [张友东](https://github.com/AXYZdong)（内容创作者-Datawhale成员）
 - [张凯旋](https://github.com/zarjun)（内容创作者-Datawhale成员-上海科技大学）
 
