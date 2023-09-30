@@ -52,16 +52,16 @@
 | :---: | :----------------------: | :----: | :----: | :----: |
 |  2    | 预备知识                   | 待审核 | 毛瑞盈、陈可为、胡锐锋 |  |
 |  3    | 线性神经网络                | 待审核 | 毛瑞盈、陈可为、胡锐锋 |  |
-|  4    | 多层感知机                  | 未完成 | 毛瑞盈、陈可为 |  |
+|  4    | 多层感知机                  | 待审核 | 毛瑞盈、陈可为 |  |
 |  5    | 深度学习计算                | 待审核 | 宋志学、韩颐堃 |   |
 |  6    | 卷积神经网络                | 待审核 | 宋志学、韩颐堃 |  |
 |  7    | 现代卷积神经网络             | 未完成 | 宋志学、韩颐堃 |  |
 |  8    | 循环神经网络                | 待审核 | 王振凯 |  |
 |  9    | 现代循环神经网络             | 待审核 | 王振凯 |  |
-| 10    | 注意力机制                  | 未完成 | 徐韵婉、崔腾松 |  |
+| 10    | 注意力机制                  | 待审核 | 徐韵婉、崔腾松 |  |
 | 11    | 优化算法                    | 未完成 | 张银晗、邹雨衡 |  |
-| 12    | 计算性能                    | 未完成 | 邹雨衡 |  |
-| 13    | 计算机视觉                  | 未完成 | 刘旭、曾莹 |  |
+| 12    | 计算性能                    | 待审核 | 邹雨衡 |  |
+| 13    | 计算机视觉                  | 待审核 | 刘旭、曾莹 |  |
 | 14    | 自然语言处理：预训练          | 待审核 | 肖鸿儒 |  |
 | 15    | 自然语言处理：应用            | 待审核 | 张友东、张凯旋 |  |
 
@@ -76,10 +76,34 @@ requirements.txt-----------------------------------运行环境依赖包
 ## 致谢
 
 **核心贡献者**
+- [宋志学-项目负责人](https://github.com/KMnO4-zx)（Datawhale成员-河南理工大学-AI兴趣爱好者）
+- [胡锐锋-项目发起人](https://github.com/Relph1119)（Datawhale成员-华东交通大学-系统架构设计师）
+- [韩颐堃](https://github.com/YikunHan42)（内容创作者-Datawhale成员）
+- [毛瑞盈](https://github.com/catcooc)（内容创作者）
+- [陈可为](https://github.com/Ethan-Chen-plus)（内容创作者-Datawhale成员）
+- [王振凯](https://github.com/Rookie-Kai)（内容创作者-Datawhale成员）
+- [崔腾松](https://github.com/2951121599)（Datawhale成员-whale量化开源项目负责人）
+- [徐韵婉](https://github.com/xyw1)（内容创作者-Datawhale成员-读书爱好者）
+- [张银晗](https://github.com/YinHan-Zhang)（内容创作者-Datawhale成员）
+- [邹雨衡](https://github.com/logan-zou)（Datawhale成员-对外经济贸易大学研究生）
+- [刘旭](https://github.com/liuxu-manifold)（内容创作者）
+- [曾莹](https://github.com/zengying321)（内容创作者）
+- [肖鸿儒](https://github.com/Hongru0306)（内容创作者）
+- [张友东](https://github.com/AXYZdong)（内容创作者-Datawhale成员）
+- [张凯旋](https://github.com/zarjun)（内容创作者-Datawhale高校联盟成员-Datawhale成员）
 
 **其他**
+- 特别感谢[@Sm1les](https://github.com/Sm1les)对本项目的帮助与支持
+- 如果有任何想法可以联系我们 DataWhale 也欢迎大家多多提出 issue
+- 特别感谢以下为教程做出贡献的同学！
+
+<a href="https://github.com/datawhalechina/d2l-ai-solutions-manual/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=datawhalechina/d2l-ai-solutions-manual" />
+</a>
 
 ## 参考文献
+- [动手学深度学习-中文版](https://zh.d2l.ai/)
+- [动手学深度学习-英文版](https://d2l.ai/)
 
 ## 关注我们
 
