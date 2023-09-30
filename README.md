@@ -9,8 +9,9 @@
 在线阅读地址：https://datawhalechina.github.io/d2l-ai-solutions-manual
 
 ## 选用的《动手学深度学习》版本
-<img src="images/book.png?raw=true" width="336" height= "500">
-
+<div align=center>
+   <img src="images/book.png?raw=true" width="336" height= "500">
+</div>
 > 书名：动手学深度学习（PyTorch版）  
 > 著者：阿斯顿·张、[美]扎卡里 C. 立顿、李沐、[德]亚历山大·J.斯莫拉  
 > 译者：何孝霆、瑞潮儿·胡  
