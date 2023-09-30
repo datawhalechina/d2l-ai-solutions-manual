@@ -59,7 +59,7 @@
 |  8    | 循环神经网络                | 待审核 | 王振凯 |  |
 |  9    | 现代循环神经网络             | 待审核 | 王振凯 |  |
 | 10    | 注意力机制                  | 待审核 | 徐韵婉、崔腾松 |  |
-| 11    | 优化算法                    | 未完成 | 张银晗、邹雨衡 |  |
+| 11    | 优化算法                    | 待审核 | 张银晗、邹雨衡 |  |
 | 12    | 计算性能                    | 待审核 | 邹雨衡 |  |
 | 13    | 计算机视觉                  | 待审核 | 刘旭、曾莹 |  |
 | 14    | 自然语言处理：预训练          | 待审核 | 肖鸿儒 |  |
@@ -90,7 +90,7 @@ requirements.txt-----------------------------------运行环境依赖包
 - [曾莹](https://github.com/zengying321)（内容创作者）
 - [肖鸿儒](https://github.com/Hongru0306)（内容创作者）
 - [张友东](https://github.com/AXYZdong)（内容创作者-Datawhale成员）
-- [张凯旋](https://github.com/zarjun)（内容创作者-Datawhale高校联盟成员-Datawhale成员）
+- [张凯旋](https://github.com/zarjun)（内容创作者-Datawhale成员-上海科技大学）
 
 **其他**
 - 特别感谢[@Sm1les](https://github.com/Sm1les)对本项目的帮助与支持
