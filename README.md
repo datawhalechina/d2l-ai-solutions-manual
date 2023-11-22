@@ -110,6 +110,10 @@ requirements.txt-----------------------------------运行环境依赖包
 - [动手学深度学习-中文版](https://zh.d2l.ai/)
 - [动手学深度学习-英文版](https://d2l.ai/)
 
+## Star History
+
+![Star History Chart](https://api.star-history.com/svg?repos=datawhalechina/d2l-ai-solutions-manual&type=Date)
+
 ## 关注我们
 
 <div align=center>
