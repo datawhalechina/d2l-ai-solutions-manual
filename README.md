@@ -9,9 +9,11 @@
 在线阅读地址：https://datawhalechina.github.io/d2l-ai-solutions-manual
 
 ## 选用的《动手学深度学习》版本
+
 <div align=center>
    <img src="images/book.png?raw=true" width="336" height= "500">
 </div>
+
 > 书名：动手学深度学习（PyTorch版）  
 > 著者：阿斯顿·张、[美]扎卡里 C. 立顿、李沐、[德]亚历山大·J.斯莫拉  
 > 译者：何孝霆、瑞潮儿·胡  
@@ -19,31 +21,42 @@
 > 版次：2023年2月第1版  
 
 ## Notebook运行环境配置
-1. Python版本  
-   请使用python3.9.X，如使用其他版本，requirements.txt中所列的依赖包可能不兼容。
+
+1. 克隆项目请使用如下命令(只克隆最新的 commit )：
+
+   ```shell
+   git clone https://github.com/datawhalechina/d2l-ai-solutions-manual.git --depth 1
+   ```
+
+2. Python版本  
+   请使用python3.10.X，如使用其他版本，requirements.txt中所列的依赖包可能不兼容。
    
-2. 安装相关的依赖包
+3. 安装相关的依赖包
+
+
     ```shell
     pip install -r requirements.txt
     ```
 
-3. 安装PyTorch
-访问[PyTorch官网](https://pytorch.org/get-started/locally/)，选择合适的版本安装PyTorch，有条件的小伙伴可以下载GPU版本
+4. 安装PyTorch
+
+   访问[PyTorch官网](https://pytorch.org/get-started/locally/)，选择合适的版本安装PyTorch，有条件的小伙伴可以下载GPU版本
    ```shell
-   pip3 install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu117
+   pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
    ```
 
-4. 安装d2l
+5. 安装d2l
    ```shell
    pip install d2l
    ```
 
-5. docsify框架运行
+6. docsify框架运行
     ```shell
     docsify serve ./docs
     ```
 
 ## 协作规范
+
 1. 由于习题解答中需要有程序和执行结果，采用jupyter notebook的格式进行编写（文件路径：notebooks），然后将其导出成markdown格式，再覆盖到docs对应的章节下。
 2. 可按照Notebook运行环境配置，配置相关的运行环境。
 3. 习题解答编写中，需要尽量使用初学者（有高数基础）能理解的数学概念，如果涉及公式定理的推导和证明，可附上参考链接。
