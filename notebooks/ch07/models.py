@@ -1,0 +1,888 @@
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+# AlexNet
+class AlexNet(nn.Module):
+    def __init__(self, in_channels=1, num_classes=10):
+       super().__init__()
+       self.in_channels = in_channels
+       self.num_classes = num_classes
+       self.net = nn.Sequential(
+                    # 这里使用一个11*11的更大窗口来捕捉对象。
+                    # 同时，步幅为4，以减少输出的高度和宽度。
+                    # 另外，输出通道的数目远大于LeNet
+                    nn.Conv2d(self.in_channels, 96, kernel_size=11, stride=4, padding=1), nn.ReLU(),
+                    nn.MaxPool2d(kernel_size=3, stride=2),
+                    # 减小卷积窗口，使用填充为2来使得输入与输出的高和宽一致，且增大输出通道数
+                    nn.Conv2d(96, 256, kernel_size=5, padding=2), nn.ReLU(),
+                    nn.MaxPool2d(kernel_size=3, stride=2),
+                    # 使用三个连续的卷积层和较小的卷积窗口。
+                    # 除了最后的卷积层，输出通道的数量进一步增加。
+                    # 在前两个卷积层之后，汇聚层不用于减少输入的高度和宽度
+                    nn.Conv2d(256, 384, kernel_size=3, padding=1), nn.ReLU(),
+                    nn.Conv2d(384, 384, kernel_size=3, padding=1), nn.ReLU(),
+                    nn.Conv2d(384, 256, kernel_size=3, padding=1), nn.ReLU(),
+                    nn.MaxPool2d(kernel_size=3, stride=2),
+                    nn.Flatten(),
+                    # 这里，全连接层的输出数量是LeNet中的好几倍。使用dropout层来减轻过拟合
+                    nn.Linear(6400, 4096), nn.ReLU(),
+                    nn.Dropout(p=0.5),
+                    nn.Linear(4096, 4096), nn.ReLU(),
+                    nn.Dropout(p=0.5),
+                    # 最后是输出层。由于这里使用Fashion-MNIST，所以用类别数为10，而非论文中的1000
+                    nn.Linear(4096, self.num_classes))
+    
+    def forward(self, x):
+        return self.net(x)
+ 
+# LeNet
+class LeNet(nn.Module):
+    def __init__(self, in_channels=1, num_classes=10) -> None:
+        super().__init__()
+        self.in_channels = in_channels
+        self.num_classes = num_classes
+        self.net = nn.Sequential(nn.Conv2d(self.in_channels, 6, kernel_size=5, padding=2), 
+                              nn.Sigmoid(),
+                              nn.AvgPool2d(kernel_size=2, stride=2),
+                              nn.Conv2d(6, 16, kernel_size=5), 
+                              nn.Sigmoid(),
+                              nn.AvgPool2d(kernel_size=2, stride=2),
+                              nn.Flatten(),
+                              nn.Linear(16 * 5 * 5, 120), 
+                              nn.Sigmoid(),
+                              nn.Linear(120, 84),
+                              nn.Sigmoid(),
+                              nn.Linear(84, self.num_classes))
+        
+    def forward(self, x):
+        return self.net(x)
+
+# LeNetPro: use ReLU instead of Sigmoid; append dropout layer after linear layer
+class LeNetPro(nn.Module):
+    def __init__(self, in_channels=1, num_classes=10) -> None:
+        super().__init__()
+        self.in_channels = in_channels
+        self.num_classes = num_classes
+        self.net = nn.Sequential(nn.Conv2d(self.in_channels, 6, kernel_size=5, padding=2),
+                                 nn.ReLU(),
+                                 nn.AvgPool2d(kernel_size=2, stride=2),
+                                 nn.Conv2d(6, 16, kernel_size=5), 
+                                 nn.ReLU(),
+                                 nn.AvgPool2d(kernel_size=2, stride=2),
+                                 nn.Flatten(),
+                                 nn.Linear(16 * 5 * 5, 120), 
+                                 nn.ReLU(),
+                                 nn.Dropout(p=0.5),
+                                 nn.Linear(120, 84),
+                                 nn.ReLU(),         
+                                 nn.Dropout(p=0.5),
+                                 nn.Linear(84, self.num_classes))
+    def forward(self, x):
+        return self.net(x)
+
+
+# idea: to simplify the AlexNet
+class AlexNetSimple(nn.Module):
+    def __init__(self, in_channels=1, num_classes=10) -> None:
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Conv2d(in_channels, 64, kernel_size=3, stride=2, padding=1), 
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=3, stride=2),  
+            # nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            
+            nn.Flatten(),
+            
+            nn.Linear(256 * 6 * 6, 2048),
+            nn.ReLU(),
+            nn.Dropout(p=0.5),
+            nn.Linear(2048, 1024),
+            nn.ReLU(),
+            nn.Dropout(p=0.5),
+            nn.Linear(1024, num_classes)
+        )
+    
+    def forward(self, x):
+        return self.net(x)
+    
+# net = AlexNetSimple(1, 10).cuda()
+# # import torchsummary
+# # torchsummary.summary(net, (3, 224, 224))
+# # net = AlexNet()
+# # print(net)
+# x= torch.randn(1, 1, 28, 28).cuda()
+# print(net(x).shape)
+
+
+# VGG net
+class VGG(nn.Module):
+    def __init__(self, in_channels=1, num_classes=10, 
+                 input_size : int = 224, 
+                 conv_arch : tuple = None) -> None:
+        super().__init__()
+        self.in_channels = in_channels
+        self.num_classes = num_classes
+        self.conv_arch = conv_arch
+        
+        self.conv, self.out_channels = self._vgg_block()
+        
+        if input_size == 224:
+            self.size = 7
+        elif input_size == 96:
+            self.size = 3
+        
+        self.linear = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(self.out_channels * self.size * self.size, 4096),
+            nn.ReLU(),
+            nn.Dropout(p=0.5),
+            nn.Linear(4096, 4096),
+            nn.ReLU(),
+            nn.Dropout(p=0.5),
+            nn.Linear(4096, self.num_classes)
+        )
+        
+# import torchvision.models as models
+# models.vgg11()   
+    def _vgg_block(self):
+        layers = []
+        for (num_convs, out_channels) in self.conv_arch:
+            layers_in = []
+            for _ in range(num_convs):
+                layers_in.append(nn.Conv2d(self.in_channels, out_channels, kernel_size=3, padding=1))
+                layers_in.append(nn.ReLU())
+                self.in_channels = out_channels
+            layers_in.append(nn.MaxPool2d(kernel_size=2, stride=2))
+            layers.append(nn.Sequential(*layers_in))
+        return nn.Sequential(*layers), out_channels
+    
+    def forward(self, x):
+        x = self.conv(x)
+
+        return self.linear(x)
+    
+    def print_layers(self):
+        x = torch.randn(1, 1, 224, 224)
+        for layer in self.conv:
+            if layer.__class__.__name__ == 'Sequential':
+                print('In Sequential:')
+                for sub_layer in layer:
+                    x = sub_layer(x)
+                    print(sub_layer.__class__.__name__, 'output shape:\t', x.shape)
+            # x = layer(x)
+            # print(layer.__class__.__name__, 'output shape:\t', x.shape)
+            print('-------------------')
+        for layer in self.linear:
+            x = layer(x)
+            print(layer.__class__.__name__, 'output shape:\t', x.shape)
+        
+    
+
+    
+
+def vgg11(in_channels=1, num_classes=10, coef :int = 1, input_size=224):
+    conv_arch = (1, 64//coef), (1, 128//coef), (2, 256//coef), (2, 512//coef), (2, 512//coef)
+    return VGG(in_channels, num_classes, input_size, conv_arch)
+
+
+
+
+def vgg13(in_channels=1, num_classes=10, input_size=224):
+    conv_arch = ((2, 64), (2, 128), (2, 256), (2, 512), (2, 512))
+    return VGG(in_channels, num_classes, input_size, conv_arch)
+
+def vgg16(in_channels=1, num_classes=10, input_size=224):
+    conv_arch = ((2, 64), (2, 128), (3, 256), (3, 512), (3, 512))
+    return VGG(in_channels, num_classes, input_size, conv_arch)
+
+def vgg19(in_channels=1, num_classes=10, input_size=224):
+    conv_arch = ((2, 64), (2, 128), (4, 256), (4, 512), (4, 512))
+    return VGG(in_channels, num_classes, input_size, conv_arch)
+
+# net = vgg11(1, 10, input_size=96).cuda()
+# x = torch.randn(1, 1, 96, 96).cuda()
+# import torchinfo
+# torchinfo.summary(net, (1, 1, 96, 96)) 
+# y = net(x)
+
+# NiN
+class NiN(nn.Module):
+    def __init__(self, in_channels=1, num_classes=10) -> None:
+        super().__init__()
+        
+        self.in_channels = in_channels
+        self.num_classes = num_classes
+        self.net = nn.Sequential(
+            self._nin_block(self.in_channels, 96, kernel_size=11, stride=4, padding=0),
+            nn.MaxPool2d(kernel_size=3, stride=2),
+            self._nin_block(96, 256, kernel_size=5, stride=1, padding=2),
+            nn.MaxPool2d(kernel_size=3, stride=2),
+            self._nin_block(256, 384, kernel_size=3, stride=1, padding=1),
+            nn.MaxPool2d(kernel_size=3, stride=2),
+            nn.Dropout(p=0.5),
+            self._nin_block(384, self.num_classes, kernel_size=3, stride=1, padding=1),
+            nn.AdaptiveAvgPool2d((1, 1)),
+            nn.Flatten()
+        )
+    
+    
+    def _nin_block(self, in_channels, out_channels, kernel_size, stride, padding):
+        return nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding),
+            nn.ReLU(),
+            nn.Conv2d(out_channels, out_channels, kernel_size=1),
+            nn.ReLU(),
+            nn.Conv2d(out_channels, out_channels, kernel_size=1),
+            nn.ReLU()
+        )
+    
+    def forward(self, x):
+        return self.net(x)
+    
+
+class NiN_Simple(nn.Module):
+    def __init__(self, in_channels=1, num_classes=10) -> None:
+        super().__init__()
+        
+        self.in_channels = in_channels
+        self.num_classes = num_classes
+        self.net = nn.Sequential(
+            self._nin_block(self.in_channels, 96, kernel_size=11, stride=4, padding=0),
+            nn.MaxPool2d(kernel_size=3, stride=2),
+            self._nin_block(96, 256, kernel_size=5, stride=1, padding=2),
+            nn.MaxPool2d(kernel_size=3, stride=2),
+            self._nin_block(256, 384, kernel_size=3, stride=1, padding=1),
+            nn.MaxPool2d(kernel_size=3, stride=2),
+            nn.Dropout(p=0.5),
+            self._nin_block(384, self.num_classes, kernel_size=3, stride=1, padding=1),
+            nn.AdaptiveAvgPool2d((1, 1)),
+            nn.Flatten()
+        )
+    
+    
+    def _nin_block(self, in_channels, out_channels, kernel_size, stride, padding):
+        return nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding),
+            nn.ReLU(),
+            nn.Conv2d(out_channels, out_channels, kernel_size=1),
+            nn.ReLU(),
+            # nn.Conv2d(out_channels, out_channels, kernel_size=1),
+            # nn.ReLU()
+        )
+    
+    def forward(self, x):
+        return self.net(x)
+    
+    
+# net = NiN_Simple(1, 10).cuda()
+# import torchinfo
+# torchinfo.summary(net, (1, 1, 224, 224))
+# GoogleLeNet
+
+# Inception block
+class Inception(nn.Module):
+    # c1--c4是每条路径的输出通道数
+    def __init__(self, in_channels, c1, c2, c3, c4, **kwargs):
+        super(Inception, self).__init__(**kwargs)
+        # 线路1，单1x1卷积层
+        self.p1_1 = nn.Conv2d(in_channels, c1, kernel_size=1)
+        # 线路2，1x1卷积层后接3x3卷积层
+        self.p2_1 = nn.Conv2d(in_channels, c2[0], kernel_size=1)
+        self.p2_2 = nn.Conv2d(c2[0], c2[1], kernel_size=3, padding=1)
+        # 线路3，1x1卷积层后接5x5卷积层
+        self.p3_1 = nn.Conv2d(in_channels, c3[0], kernel_size=1)
+        self.p3_2 = nn.Conv2d(c3[0], c3[1], kernel_size=5, padding=2)
+        # 线路4，3x3最大汇聚层后接1x1卷积层
+        self.p4_1 = nn.MaxPool2d(kernel_size=3, stride=1, padding=1)
+        self.p4_2 = nn.Conv2d(in_channels, c4, kernel_size=1)
+
+    def forward(self, x):
+        p1 = F.relu(self.p1_1(x))
+        p2 = F.relu(self.p2_2(F.relu(self.p2_1(x))))
+        p3 = F.relu(self.p3_2(F.relu(self.p3_1(x))))
+        p4 = F.relu(self.p4_2(self.p4_1(x)))
+        # 在通道维度上连结输出
+        return torch.cat((p1, p2, p3, p4), dim=1)
+    
+    
+
+class GoogLeNet(nn.Module):
+    def __init__(self, in_channels=1, num_classes=10):
+        super().__init__()
+        
+        self.b1 = nn.Sequential(nn.Conv2d(in_channels, 64, kernel_size=7, stride=2, padding=3),
+                           nn.ReLU(),
+                           nn.MaxPool2d(kernel_size=3, stride=2, padding=1))
+        
+        self.b2 = nn.Sequential(nn.Conv2d(64, 64, kernel_size=1),
+                           nn.ReLU(),
+                           nn.Conv2d(64, 192, kernel_size=3, padding=1),
+                           nn.ReLU(),
+                           nn.MaxPool2d(kernel_size=3, stride=2, padding=1))
+        
+        self.b3 = nn.Sequential(Inception(192, 64, (96, 128), (16, 32), 32),
+                   Inception(256, 128, (128, 192), (32, 96), 64),
+                   nn.MaxPool2d(kernel_size=3, stride=2, padding=1))
+        
+        self.b4 = nn.Sequential(Inception(480, 192, (96, 208), (16, 48), 64),
+                   Inception(512, 160, (112, 224), (24, 64), 64),
+                   Inception(512, 128, (128, 256), (24, 64), 64),
+                   Inception(512, 112, (144, 288), (32, 64), 64),
+                   Inception(528, 256, (160, 320), (32, 128), 128),
+                   nn.MaxPool2d(kernel_size=3, stride=2, padding=1))
+        self.b5 = nn.Sequential(Inception(832, 256, (160, 320), (32, 128), 128),
+                   Inception(832, 384, (192, 384), (48, 128), 128),
+                   nn.AdaptiveAvgPool2d((1,1)),
+                   nn.Flatten())
+        self.linear = nn.Linear(1024, num_classes)
+        
+    def forward(self, x):
+        x = self.b1(x)
+        x = self.b2(x)
+        x = self.b3(x)
+        x = self.b4(x)
+        x = self.b5(x)
+        x = self.linear(x)
+        return x
+    
+# net = GoogleLeNet(1, 10).cuda()
+# import torchinfo
+# torchinfo.summary(net, (128, 1, 32, 32))
+    
+# models for 7.4.1
+# question01: add batchnorm layer
+class BNInception(nn.Module):
+    # c1--c4是每条路径的输出通道数
+    def __init__(self, in_channels, c1, c2, c3, c4):
+        super().__init__()
+        # 线路1，单1x1卷积层
+        self.p1_1 = nn.Sequential(nn.Conv2d(in_channels, c1, kernel_size=1),
+                      nn.BatchNorm2d(c1))
+        self.p2_1 = nn.Sequential(nn.Conv2d(in_channels, c2[0], kernel_size=1),
+                      nn.BatchNorm2d(c2[0]))
+        self.p2_2 = nn.Sequential(nn.Conv2d(c2[0], c2[1], kernel_size=3, padding=1),
+                      nn.BatchNorm2d(c2[1]))
+        self.p3_1 = nn.Sequential(nn.Conv2d(in_channels, c3[0], kernel_size=1),
+                      nn.BatchNorm2d(c3[0]))
+        self.p3_2 = nn.Sequential(nn.Conv2d(c3[0], c3[1], kernel_size=5, padding=2),
+                      nn.BatchNorm2d(c3[1]))
+        self.p4_1 = nn.Sequential(nn.MaxPool2d(kernel_size=3, stride=1, padding=1),
+                      nn.BatchNorm2d(in_channels))
+        self.p4_2 = nn.Sequential(nn.Conv2d(in_channels, c4, kernel_size=1),
+                      nn.BatchNorm2d(c4))
+
+    def forward(self, x):
+        p1 = F.relu(self.p1_1(x))
+        p2 = F.relu(self.p2_2(F.relu(self.p2_1(x))))
+        p3 = F.relu(self.p3_2(F.relu(self.p3_1(x))))
+        p4 = F.relu(self.p4_2(self.p4_1(x)))
+        # 在通道维度上连结输出
+        return torch.cat((p1, p2, p3, p4), dim=1)
+    
+class GoogLeNetBN(nn.Module):
+    def __init__(self, in_channels=1, num_classes=10):
+        super().__init__()
+        
+        self.b1 = nn.Sequential(nn.Conv2d(in_channels, 64, kernel_size=7, stride=2, padding=3),
+                           nn.BatchNorm2d(64),
+                           nn.ReLU(),
+                           nn.MaxPool2d(kernel_size=3, stride=2, padding=1))
+        
+        self.b2 = nn.Sequential(nn.Conv2d(64, 64, kernel_size=1),
+                           nn.BatchNorm2d(64),
+                           nn.ReLU(),
+                           nn.Conv2d(64, 192, kernel_size=3, padding=1),
+                           nn.BatchNorm2d(192),
+                           nn.ReLU(),
+                           nn.MaxPool2d(kernel_size=3, stride=2, padding=1))
+        
+        self.b3 = nn.Sequential(BNInception(192, 64, (96, 128), (16, 32), 32),
+                                BNInception(256, 128, (128, 192), (32, 96), 64),
+                                nn.MaxPool2d(kernel_size=3, stride=2, padding=1))
+        
+        self.b4 = nn.Sequential(BNInception(480, 192, (96, 208), (16, 48), 64),
+                                BNInception(512, 160, (112, 224), (24, 64), 64),
+                                BNInception(512, 128, (128, 256), (24, 64), 64),
+                                BNInception(512, 112, (144, 288), (32, 64), 64),
+                                BNInception(528, 256, (160, 320), (32, 128), 128),
+                                nn.MaxPool2d(kernel_size=3, stride=2, padding=1))
+        self.b5 = nn.Sequential(BNInception(832, 256, (160, 320), (32, 128), 128),
+                                BNInception(832, 384, (192, 384), (48, 128), 128),
+                                nn.AdaptiveAvgPool2d((1,1)),
+                                nn.Flatten())
+        self.linear = nn.Linear(1024, num_classes)
+        
+    def forward(self, x):
+        x = self.b1(x)
+        x = self.b2(x)
+        x = self.b3(x)
+        x = self.b4(x)
+        x = self.b5(x)
+        x = self.linear(x)
+        return x
+
+#question02: 对Incepetion进行调整
+
+class BasicConv2d(nn.Module):
+    def __init__(self, in_channels, out_channels, **kwargs) -> None:
+        super().__init__()
+        self.conv = nn.Conv2d(in_channels, out_channels, **kwargs)
+        self.bn = nn.BatchNorm2d(out_channels, eps=0.001)
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.bn(x)
+        return F.relu(x, inplace=True)
+    
+class Inception_v3_1(nn.Module):
+    def __init__(self, in_channels, pool_channels, cut = False) -> None:
+        super().__init__()
+        self.cut = cut
+        if not self.cut:
+            self.b1 = BasicConv2d(in_channels, 64, kernel_size=1)
+            
+            self.b2 = nn.Sequential(BasicConv2d(in_channels, 48, kernel_size=1),
+                                    BasicConv2d(48, 64, kernel_size=5, padding=2))
+            
+            self.b3 = nn.Sequential(BasicConv2d(in_channels, 64, kernel_size=1),
+                                    BasicConv2d(64, 96, kernel_size=3, padding=1),
+                                    BasicConv2d(96, 96, kernel_size=3, padding=1))
+            
+            self.b4 = BasicConv2d(in_channels, pool_channels, kernel_size=1)
+        
+        else:
+            self.b1 = BasicConv2d(in_channels, 384, kernel_size=3, stride=2)
+            
+            self.b2 = nn.Sequential(BasicConv2d(in_channels, 64, kernel_size=1),
+                                    BasicConv2d(64, 96, kernel_size=3, padding=1),
+                                    BasicConv2d(96, 96, kernel_size=3, stride=2))
+        
+    def forward(self, x):
+        if not self.cut:
+            b1 = self.b1(x)
+            b2 = self.b2(x)
+            b3 = self.b3(x)
+            b4 = F.max_pool2d(x, kernel_size=3, stride=1, padding=1)
+            b4 = self.b4(b4)
+            return torch.cat((b1, b2, b3, b4), dim=1)
+        else:
+            b1 = self.b1(x)
+            b2 = self.b2(x)
+            b3 = F.max_pool2d(x, kernel_size=3, stride=2)
+            return torch.cat((b1, b2, b3), dim=1)
+        
+        
+
+
+class Inception_v3_2(nn.Module):
+    def __init__(self, in_channel, channel_7x7, cut = False) -> None:
+        super().__init__()
+        
+        self.cut = cut
+        if not self.cut:
+            c7 = channel_7x7
+            
+            self.b1 = BasicConv2d(in_channel, 192, kernel_size=1)
+            
+            self.b2 = nn.Sequential(BasicConv2d(in_channel, c7, kernel_size=1),
+                                    BasicConv2d(c7, c7, kernel_size=(1, 7), padding=(0, 3)),
+                                    BasicConv2d(c7, 192, kernel_size=(7, 1), padding=(3, 0)))
+            
+            self.b3 = nn.Sequential(BasicConv2d(in_channel, c7, kernel_size=1),
+                                    BasicConv2d(c7, c7, kernel_size=(7, 1), padding=(3, 0)),
+                                    BasicConv2d(c7, c7, kernel_size=(1, 7), padding=(0, 3)),
+                                    BasicConv2d(c7, c7, kernel_size=(7, 1), padding=(3, 0)),
+                                    BasicConv2d(c7, 192, kernel_size=(1, 7), padding=(0, 3)))
+            
+            self.b4 = BasicConv2d(in_channel, 192, kernel_size=1)
+        
+        else:
+            self.b1 = nn.Sequential(BasicConv2d(in_channel, 192, kernel_size=1),
+                                    BasicConv2d(192, 320, kernel_size=3, stride=2))
+            
+            self.b2 = nn.Sequential(BasicConv2d(in_channel, 192, kernel_size=1),
+                                    BasicConv2d(192, 192, kernel_size=(1, 7), padding=(0, 3)),
+                                    BasicConv2d(192, 192, kernel_size=(7, 1), padding=(3, 0)),
+                                    BasicConv2d(192, 192, kernel_size=3, stride=2))
+            
+        
+    def forward(self, x):
+        if not self.cut:
+            b1 = self.b1(x)
+            b2 = self.b2(x)
+            b3 = self.b3(x)
+            b4 = F.max_pool2d(x, kernel_size=3, stride=1, padding=1)
+            b4 = self.b4(b4)
+            return torch.cat((b1, b2, b3, b4), dim=1)
+        else:
+            b1 = self.b1(x)
+            b2 = self.b2(x)
+            b3 = F.max_pool2d(x, kernel_size=3, stride=2)
+            return torch.cat((b1, b2, b3), dim=1)
+        
+class Inception_v3_3(nn.Module):
+    def __init__(self, in_channel) -> None:
+        super().__init__()
+        
+        self.b1 = BasicConv2d(in_channel, 320, kernel_size=1)
+
+        self.b2_1 = BasicConv2d(in_channel, 384, kernel_size=1)
+        self.b2_2 = BasicConv2d(384, 384, kernel_size=(1, 3), padding=(0, 1))
+        self.b2_3 = BasicConv2d(384, 384, kernel_size=(3, 1), padding=(1, 0))
+        
+        self.b3_1 = nn.Sequential(BasicConv2d(in_channel, 448, kernel_size=1),
+                                BasicConv2d(448, 384, kernel_size=3, padding=1))
+        self.b3_2 = BasicConv2d(384, 384, kernel_size=(1, 3), padding=(0, 1))
+        self.b3_3 = BasicConv2d(384, 384, kernel_size=(3, 1), padding=(1, 0))
+        
+        self.b4 = BasicConv2d(in_channel, 192, kernel_size=1)
+        
+    def forward(self, x):
+        
+        b1 = self.b1(x)
+        
+        b2_in = self.b2_1(x)
+        b2_mid = [self.b2_2(b2_in), self.b2_3(b2_in)]
+        b2 = torch.cat(b2_mid, dim=1)
+        
+        b3_in = self.b3_1(x)
+        b3_mid = [self.b3_2(b3_in), self.b3_3(b3_in)]
+        b3 = torch.cat(b3_mid, dim=1)
+        
+        b4_in = F.max_pool2d(x, kernel_size=3, stride=1, padding=1)
+        b4 = self.b4(b4_in)
+        
+        return torch.cat((b1, b2, b3, b4), dim=1)
+    
+    
+class Inception_V3_Net(nn.Module):
+    def __init__(self, in_channel, num_classes = 10) -> None:
+        super().__init__()
+        
+        self.conv1 = nn.Sequential(BasicConv2d(in_channel, 32, kernel_size=3, stride=2),
+                                   BasicConv2d(32, 32, kernel_size=3),
+                                   BasicConv2d(32, 64, kernel_size=3, padding=1),
+                                   nn.MaxPool2d(kernel_size=3, stride=2))
+                
+        self.conv2 = nn.Sequential(BasicConv2d(64, 80, kernel_size=1),
+                                      BasicConv2d(80, 192, kernel_size=3),
+                                      nn.MaxPool2d(kernel_size=3, stride=2))
+        
+        # InceptionA
+        self.incept1a = Inception_v3_1(192, 32)
+        self.incept1b = Inception_v3_1(256, 64)
+        self.incept1c = Inception_v3_1(288, 64)
+        
+        # InceptionB
+        self.incept1_ = Inception_v3_1(288, None, cut=True)
+        
+        # InceptionC
+        self.incept2a = Inception_v3_2(768, 128)
+        self.incept2b = Inception_v3_2(768, 160)
+        self.incept2c = Inception_v3_2(768, 160)
+        self.incept2d = Inception_v3_2(768, 192)
+        
+        # InceptionD
+        self.incept2_ = Inception_v3_2(768, None, cut=True)
+        
+        # InceptionE
+        self.incept3a = Inception_v3_3(1280)
+        self.incept3b = Inception_v3_3(2048)
+        
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.dropout = nn.Dropout(p=0.5)
+        self.linear = nn.Linear(2048, num_classes)
+        
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.conv2(x)
+        
+        x = self.incept1a(x)
+        x = self.incept1b(x)
+        x = self.incept1c(x)
+        
+        x = self.incept1_(x)
+        x = self.incept2a(x)
+        x = self.incept2b(x)
+        x = self.incept2c(x)
+        x = self.incept2d(x)
+        
+        x = self.incept2_(x)
+        x = self.incept3a(x)
+        x = self.incept3b(x)
+        
+        x = self.avgpool(x)
+        x = self.dropout(x)
+        x = x.view(-1, 2048)
+        
+        # print(x.shape)
+        x = self.linear(x)
+        return x
+        
+
+# import torch
+# import torchinfo        
+# mode = Inception_V3_Net(1, 10).cuda()
+# torchinfo.summary(mode, (1, 1, 299, 299))
+# y = mode(n)
+        
+
+
+# Resnet size = 32x32
+import torch
+from typing import Callable, List, Optional, Type, Union
+import torch.nn.functional as F
+
+
+
+def conv3x3(inplanes: int, out_planes: int, stride: int = 1) -> nn.Conv2d:
+    """3x3 convolution with padding"""
+    return nn.Conv2d(inplanes, 
+                     out_planes, 
+                     kernel_size=3, 
+                     stride=stride, 
+                     padding=1, 
+                     bias=False)
+# 构建Resnet模型，按照源代码，先构建BasicBlock，Bottleneck两个模块
+
+class BasicBlock(nn.Module):
+    expansion: int = 1  # 对输出通道进行倍增
+    def __init__(self, 
+                 inplanes: int,
+                 planes: int,
+                 stride: int = 1):
+        super().__init__()
+        
+        
+        # 此处3x3卷积层的操作遵循原始代码的操作
+        self.conv1 = conv3x3(inplanes, planes, stride)
+        self.bn1 = nn.BatchNorm2d(planes)
+        # 没有stride
+        self.conv2 = conv3x3(planes, planes)
+        self.bn2 = nn.BatchNorm2d(planes)
+        
+        self.shortcut = nn.Sequential()
+        if stride != 1 or inplanes != self.expansion*planes:
+            self.shortcut = nn.Sequential(
+                nn.Conv2d(inplanes, self.expansion*planes, kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm2d(self.expansion*planes)
+            )
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # prepare the identity for shortcut
+        identity = x
+        # 第一个卷积层
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = F.relu(out)
+        # 第二个卷积层
+        out = self.conv2(out)
+        out = self.bn2(out)
+
+        out += self.shortcut(identity)
+        out = F.relu(out)
+        
+        return out
+    
+
+class Bottleneck(nn.Module):
+    
+    expansion: int = 4  # 对输出通道进行倍增
+    
+    def __init__(self,
+                 inplanes: int,
+                 planes: int,
+                 stride: int = 1):
+        super().__init__()
+
+        self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(planes) 
+        self.conv2 = conv3x3(planes, planes, stride)
+        self.bn2 = nn.BatchNorm2d(planes)
+        self.conv3 = nn.Conv2d(planes, self.expansion*planes, kernel_size=1, bias=False)
+        self.bn3 = nn.BatchNorm2d(self.expansion*planes)
+        
+        self.shortcut = nn.Sequential()
+        if stride != 1 or inplanes != self.expansion*planes:
+            self.shortcut = nn.Sequential(
+                nn.Conv2d(inplanes, self.expansion*planes, kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm2d(self.expansion*planes))
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        identity = x
+        
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = F.relu(out)
+        
+        out = self.conv2(out)
+        out = self.bn2(out)
+        out = F.relu(out)
+        
+        out = self.conv3(out)
+        out = self.bn3(out)
+        
+        out += self.shortcut(identity)
+        out = F.relu(out)
+        return out
+    
+
+class ResNet(nn.Module):
+    def __init__(self, 
+                 in_channels,
+                 block: Type[Union[BasicBlock, Bottleneck]],
+                 layers: List[int],
+                 num_classes: int = 100):
+        super().__init__()
+        
+        self.inplanes = 64
+        
+        # 统一采样3x3卷积层，去掉这里的maxpooling
+        self.conv1 = conv3x3(in_channels, 64)   # rgb, out = channels=64, stride=0
+        self.bn1 = nn.BatchNorm2d(64)
+        
+        
+        # 层次化设计
+        self.layer1 = self._make_layer(block, 64, layers[0], stride=1)  # 对应着conv2_x
+        self.layer2 = self._make_layer(block, 128, layers[1], stride=2)  # 对应着conv3_x
+        self.layer3 = self._make_layer(block, 256, layers[2], stride=2)  # 对应着conv4_x
+        self.layer4 = self._make_layer(block, 512, layers[3], stride=2)  # 对应着conv5_x
+        
+        self.linear = nn.Linear(512 * block.expansion, num_classes)
+        
+
+        
+    def _make_layer(self,
+                    block: Type[Union[BasicBlock, Bottleneck]],
+                    planes: int,  # 输入的通道
+                    blocks: int, # 模块数目
+                    stride: int = 1, # 步长
+                    ) -> nn.Sequential:
+        # 除了第一个stride由stride决定，其余都是1
+        strides = [stride] + [1] * (blocks - 1)
+        layers = []
+        for stride in strides:
+            layers.append(block(self.inplanes, planes, stride))
+            self.inplanes = planes * block.expansion
+            
+        # 传入layers的列表进入Sequential，并进行拆分成逐元素输入Sequential
+        return nn.Sequential(*layers)
+    
+    def forward(self, x):
+        x= self.conv1(x)
+        x = self.bn1(x)
+        out = F.relu(x)
+        out = self.layer1(out)
+        out = self.layer2(out)
+        out = self.layer3(out)
+        out = self.layer4(out)
+        # 直接进行平均池化
+        out = F.avg_pool2d(out, 4)
+        # 拉成一维
+        out = out.view(out.size(0), -1)
+        out = self.linear(out)
+        return out    
+    
+def ResNet18(num_classes=10):
+    return ResNet(3, BasicBlock, [2,2,2,2], num_classes)
+
+def ResNet34(num_classes=10):
+    return ResNet(3, BasicBlock, [3,4,6,3], num_classes)
+
+def ResNet50(num_classes=10):
+    return ResNet(3, Bottleneck, [3,4,6,3], num_classes)
+
+def ResNet101(num_classes=10):
+    return ResNet(3, Bottleneck, [3,4,23,3], num_classes)
+
+def ResNet152(num_classes=10):
+    return ResNet(3, Bottleneck, [3,8,36,3], num_classes)
+
+
+# net = ResNet18(10).cuda()
+# import torchinfo
+# torchinfo.summary(net, (1, 3, 224, 224))
+
+
+class DenseBlock(nn.Module):
+    def __init__(self, in_channels, num_channels, num_convs) -> None:
+        super().__init__()
+        self.in_channels = in_channels
+        self.num_channels = num_channels
+        self.num_convs = num_convs
+        
+        layers = []
+        for i in range(self.num_convs):
+            layers.append(self._conv_block(self.in_channels + i * self.num_channels, self.num_channels))
+        
+        self.net = nn.Sequential(*layers)
+            
+    def _conv_block(self, in_channels, out_channels):
+        return nn.Sequential(
+            nn.BatchNorm2d(in_channels),
+            nn.ReLU(),
+            nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1)
+        )
+    
+    def forward(self, x):
+        for blk in self.net:
+            y = blk(x)
+            x = torch.cat((x, y), dim=1)
+        return x
+
+
+class Densenet(nn.Module):
+    def __init__(self, in_channels, num_classes) -> None:
+        super().__init__()
+        self.in_channels = in_channels
+        self.num_classes = num_classes
+        self.b1 = nn.Sequential(
+            nn.Conv2d(self.in_channels, 64, kernel_size=7, stride=2, padding=3),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+        )
+        num_channels, growth_rate = 64, 32
+        num_convs_in_dense_blocks = [4, 4, 4, 4]
+        blks = []
+        for idx, num_conv in enumerate(num_convs_in_dense_blocks):
+            blks.append(DenseBlock(num_channels, growth_rate, num_conv))
+            
+            num_channels += num_conv * growth_rate
+            
+            if idx != len(num_convs_in_dense_blocks) - 1:
+                blks.append(self._transition_block(num_channels, num_channels // 2))
+                num_channels = num_channels // 2
+                
+        self.b2 = nn.Sequential(*blks)
+        
+        self.b3 = nn.Sequential(nn.BatchNorm2d(num_channels), nn.ReLU(),
+                                nn.AdaptiveAvgPool2d((1, 1)),
+                                nn.Flatten(),
+                                nn.Linear(num_channels, self.num_classes))
+
+    def _transition_block(self, in_channels, out_channels):
+        return nn.Sequential(
+            nn.BatchNorm2d(in_channels),
+            nn.ReLU(),
+            nn.Conv2d(in_channels, out_channels, kernel_size=1),
+            nn.AvgPool2d(kernel_size=2, stride=2)
+        )
+    
+    def forward(self, x):
+        x = self.b1(x)
+        x = self.b2(x)
+        x = self.b3(x)
+        return x
+    
+# net = Densenet(1, 10).cuda()
+# import torchinfo
+# torchinfo.summary(net, (1, 1, 224, 224))
+        
+

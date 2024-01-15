@@ -1,3 +1,4 @@
 d2l==0.17.6
 matplotlib==3.5.1
 Pillow==9.4.0
+torchinfo==1.8.0
