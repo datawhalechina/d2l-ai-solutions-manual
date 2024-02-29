@@ -168,11 +168,13 @@ def batch_norm(X, gamma, beta, moving_mean, moving_var, eps, momentum):
         # 更新移动平均的均值和方差
         moving_mean = momentum * moving_mean + (1.0 - momentum) * mean
         moving_var = momentum * moving_var + (1.0 - momentum) * var
+    
     Y = gamma * X_hat + beta  # 缩放和移位
     return Y, moving_mean.data, moving_var.data
 
 class BatchNorm(nn.Module):
     # num_features：完全连接层的输出数量或卷积层的输出通道数。
+    
     # num_dims：2表示完全连接层，4表示卷积层
     def __init__(self, num_features, num_dims, freeze=False):
         super().__init__()
@@ -211,11 +213,11 @@ class LeNet_BN_freeze(nn.Module):
         self.in_channels = in_channels
         self.num_classes = num_classes
         self.net = nn.Sequential(nn.Conv2d(self.in_channels, 6, kernel_size=5, padding=2), 
-                              BatchNorm(6, 2, freeze=True),
+                              BatchNorm(6, 4, freeze=True),
                               nn.Sigmoid(),
                               nn.AvgPool2d(kernel_size=2, stride=2),
                               nn.Conv2d(6, 16, kernel_size=5), 
-                              BatchNorm(16, 2, freeze=True),
+                              BatchNorm(16, 4, freeze=True),
                               nn.Sigmoid(),
                               nn.AvgPool2d(kernel_size=2, stride=2),
                               nn.Flatten(),
@@ -224,6 +226,10 @@ class LeNet_BN_freeze(nn.Module):
                               nn.Linear(120, 84),
                               nn.Sigmoid(),
                               nn.Linear(84, self.num_classes))
+    def forward(self, x):
+        return self.net(x)
+
+
 
 class LeNet_BN2_freeze(nn.Module):
     def __init__(self, in_channels=1, num_classes=10) -> None:
@@ -231,21 +237,25 @@ class LeNet_BN2_freeze(nn.Module):
         self.in_channels = in_channels
         self.num_classes = num_classes
         self.net = nn.Sequential(nn.Conv2d(self.in_channels, 6, kernel_size=5, padding=2), 
-                              BatchNorm(6, 2, freeze=True),
+                              BatchNorm(6, 4, freeze=True),
                               nn.Sigmoid(),
                               nn.AvgPool2d(kernel_size=2, stride=2),
                               nn.Conv2d(6, 16, kernel_size=5), 
-                              BatchNorm(16, 2, freeze=True),
+                              BatchNorm(16, 4, freeze=True),
                               nn.Sigmoid(),
                               nn.AvgPool2d(kernel_size=2, stride=2),
                               nn.Flatten(),
                               nn.Linear(16 * 5 * 5, 120), 
-                              BatchNorm(120, 1, freeze=True),
+                              BatchNorm(120, 2, freeze=True),
                               nn.Sigmoid(),
                               nn.Linear(120, 84),
-                              BatchNorm(84, 1, freeze=True),
+                              BatchNorm(84, 2, freeze=True),
                               nn.Sigmoid(),
                               nn.Linear(84, self.num_classes))
+    def forward(self, x):
+        return self.net(x)
+
+
 
 # LeNetPro: use ReLU instead of Sigmoid; append dropout layer after linear layer
 class LeNetPro(nn.Module):
