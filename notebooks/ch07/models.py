@@ -58,6 +58,205 @@ class LeNet(nn.Module):
     def forward(self, x):
         return self.net(x)
 
+# LeNet_BN
+class LeNet_BN(nn.Module):
+    def __init__(self, in_channels=1, num_classes=10) -> None:
+        super().__init__()
+        self.in_channels = in_channels
+        self.num_classes = num_classes
+        self.net = nn.Sequential(nn.Conv2d(self.in_channels, 6, kernel_size=5, padding=2), 
+                              nn.BatchNorm2d(6),
+                              nn.Sigmoid(),
+                              nn.AvgPool2d(kernel_size=2, stride=2),
+                              nn.Conv2d(6, 16, kernel_size=5), 
+                              nn.BatchNorm2d(16),
+                              nn.Sigmoid(),
+                              nn.AvgPool2d(kernel_size=2, stride=2),
+                              nn.Flatten(),
+                              nn.Linear(16 * 5 * 5, 120), 
+                              nn.Sigmoid(),
+                              nn.Linear(120, 84),
+                              nn.Sigmoid(),
+                              nn.Linear(84, self.num_classes))
+        
+    def forward(self, x):
+        return self.net(x)
+
+
+# LeNet_BN2
+class LeNet_BN2(nn.Module):
+    def __init__(self, in_channels=1, num_classes=10) -> None:
+        super().__init__()
+        self.in_channels = in_channels
+        self.num_classes = num_classes
+        self.net = nn.Sequential(nn.Conv2d(self.in_channels, 6, kernel_size=5, padding=2), 
+                              nn.BatchNorm2d(6),
+                              nn.Sigmoid(),
+                              nn.AvgPool2d(kernel_size=2, stride=2),
+                              nn.Conv2d(6, 16, kernel_size=5), 
+                              nn.BatchNorm2d(16),
+                              nn.Sigmoid(),
+                              nn.AvgPool2d(kernel_size=2, stride=2),
+                              nn.Flatten(),
+                              nn.Linear(16 * 5 * 5, 120), 
+                              nn.BatchNorm1d(120),
+                              nn.Sigmoid(),
+                              nn.Linear(120, 84),
+                              nn.BatchNorm1d(84),
+                              nn.Sigmoid(),
+                              nn.Linear(84, self.num_classes))
+        
+    def forward(self, x):
+        return self.net(x)
+
+# LeNet_all_BN
+class LeNet_all_BN(nn.Module):
+    def __init__(self, in_channels=1, num_classes=10) -> None:
+        super().__init__()
+        self.in_channels = in_channels
+        self.num_classes = num_classes
+        self.net = nn.Sequential(nn.Conv2d(self.in_channels, 6, kernel_size=5, padding=2),  
+                                 nn.BatchNorm2d(6),
+                                 nn.Sigmoid(),
+                                 nn.BatchNorm2d(6),
+                                 nn.AvgPool2d(kernel_size=2, stride=2),
+                                 nn.BatchNorm2d(6),
+                                 nn.Conv2d(6, 16, kernel_size=5),
+                                 nn.BatchNorm2d(16),
+                                 nn.Sigmoid(),
+                                 nn.BatchNorm2d(16),
+                                 nn.AvgPool2d(kernel_size=2, stride=2),
+                                 nn.BatchNorm2d(16),
+                                 nn.Flatten(),
+                                 nn.Linear(16 * 5 * 5, 120),
+                                 nn.Sigmoid(),
+                                 nn.BatchNorm1d(120),
+                                 nn.Linear(120, 84),
+                                 nn.BatchNorm1d(84),
+                                 nn.Sigmoid(),
+                                 nn.BatchNorm1d(84),
+                                 nn.Linear(84, 10),
+                                 nn.BatchNorm1d(10)
+                                 )
+        
+    def forward(self, x):
+        return self.net(x) 
+
+
+# diy Batch_Norm layer to replace nn.BatchNorm2d 
+def batch_norm(X, gamma, beta, moving_mean, moving_var, eps, momentum):
+    
+    # 通过is_grad_enabled来判断当前模式是训练模式还是预测模式
+    if not torch.is_grad_enabled():
+        # 如果是在预测模式下，直接使用传入的移动平均所得的均值和方差
+        X_hat = (X - moving_mean) / torch.sqrt(moving_var + eps)
+    else:
+        # 限制X的维度
+        assert len(X.shape) in (2, 4)
+        if len(X.shape) == 2:
+            # 使用全连接层的情况，计算特征维上的均值和方差
+            mean = X.mean(dim=0)
+            var = ((X - mean) ** 2).mean(dim=0)
+        else:
+            # 使用二维卷积层的情况，计算通道维上（axis=1）的均值和方差。
+            # 这里我们需要保持X的形状以便后面可以做广播运算
+            mean = X.mean(dim=(0, 2, 3), keepdim=True)
+            var = ((X - mean) ** 2).mean(dim=(0, 2, 3), keepdim=True)
+        # 训练模式下，用当前的均值和方差做标准化
+        X_hat = (X - mean) / torch.sqrt(var + eps)
+        
+        # 更新移动平均的均值和方差
+        moving_mean = momentum * moving_mean + (1.0 - momentum) * mean
+        moving_var = momentum * moving_var + (1.0 - momentum) * var
+    
+    Y = gamma * X_hat + beta  # 缩放和移位
+    return Y, moving_mean.data, moving_var.data
+
+class BatchNorm(nn.Module):
+    # num_features：完全连接层的输出数量或卷积层的输出通道数。
+    
+    # num_dims：2表示完全连接层，4表示卷积层
+    def __init__(self, num_features, num_dims, freeze=False):
+        super().__init__()
+        if num_dims == 2:
+            shape = (1, num_features)
+        else:
+            shape = (1, num_features, 1, 1)
+        # 参与求梯度和迭代的拉伸和偏移参数，分别初始化成1和0
+        self.gamma = nn.Parameter(torch.ones(shape))
+        self.beta = nn.Parameter(torch.zeros(shape))
+        # 非模型参数的变量初始化为0和1
+        self.moving_mean = torch.zeros(shape)
+        self.moving_var = torch.ones(shape)
+        self.freeze = freeze
+            
+        
+
+    def forward(self, X):
+        if self.freeze:
+            m = 1.0
+        else:
+            m = 0.9
+        # 如果X不在显存上，将moving_mean和moving_var复制到X所在显存上
+        if self.moving_mean.device != X.device:
+            self.moving_mean = self.moving_mean.to(X.device)
+            self.moving_var = self.moving_var.to(X.device)
+        # 保存更新过的moving_mean和moving_var
+        Y, self.moving_mean, self.moving_var = batch_norm(
+            X, self.gamma, self.beta, self.moving_mean,
+            self.moving_var, eps=1e-5, momentum=m)
+        return Y
+
+class LeNet_BN_freeze(nn.Module):
+    def __init__(self, in_channels=1, num_classes=10) -> None:
+        super().__init__()
+        self.in_channels = in_channels
+        self.num_classes = num_classes
+        self.net = nn.Sequential(nn.Conv2d(self.in_channels, 6, kernel_size=5, padding=2), 
+                              BatchNorm(6, 4, freeze=True),
+                              nn.Sigmoid(),
+                              nn.AvgPool2d(kernel_size=2, stride=2),
+                              nn.Conv2d(6, 16, kernel_size=5), 
+                              BatchNorm(16, 4, freeze=True),
+                              nn.Sigmoid(),
+                              nn.AvgPool2d(kernel_size=2, stride=2),
+                              nn.Flatten(),
+                              nn.Linear(16 * 5 * 5, 120), 
+                              nn.Sigmoid(),
+                              nn.Linear(120, 84),
+                              nn.Sigmoid(),
+                              nn.Linear(84, self.num_classes))
+    def forward(self, x):
+        return self.net(x)
+
+
+
+class LeNet_BN2_freeze(nn.Module):
+    def __init__(self, in_channels=1, num_classes=10) -> None:
+        super().__init__()
+        self.in_channels = in_channels
+        self.num_classes = num_classes
+        self.net = nn.Sequential(nn.Conv2d(self.in_channels, 6, kernel_size=5, padding=2), 
+                              BatchNorm(6, 4, freeze=True),
+                              nn.Sigmoid(),
+                              nn.AvgPool2d(kernel_size=2, stride=2),
+                              nn.Conv2d(6, 16, kernel_size=5), 
+                              BatchNorm(16, 4, freeze=True),
+                              nn.Sigmoid(),
+                              nn.AvgPool2d(kernel_size=2, stride=2),
+                              nn.Flatten(),
+                              nn.Linear(16 * 5 * 5, 120), 
+                              BatchNorm(120, 2, freeze=True),
+                              nn.Sigmoid(),
+                              nn.Linear(120, 84),
+                              BatchNorm(84, 2, freeze=True),
+                              nn.Sigmoid(),
+                              nn.Linear(84, self.num_classes))
+    def forward(self, x):
+        return self.net(x)
+
+
+
 # LeNetPro: use ReLU instead of Sigmoid; append dropout layer after linear layer
 class LeNetPro(nn.Module):
     def __init__(self, in_channels=1, num_classes=10) -> None:
@@ -886,3 +1085,198 @@ class Densenet(nn.Module):
 # torchinfo.summary(net, (1, 1, 224, 224))
         
 
+# 稠密块
+class DenseBlock(nn.Module):
+    def __init__(self, in_channels, num_channels, num_convs) -> None:
+        super().__init__()
+        self.in_channels = in_channels
+        self.num_channels = num_channels
+        self.num_convs = num_convs
+        
+        layers = []
+        for i in range(self.num_convs):
+            layers.append(self._conv_block(self.in_channels + i * self.num_channels, self.num_channels))
+        self.net = nn.Sequential(*layers)
+
+    # 卷积        
+    def _conv_block(self, in_channels, out_channels):
+        return nn.Sequential(
+            nn.BatchNorm2d(in_channels),
+            nn.ReLU(),
+            nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1)
+        )
+    
+    # 前向传播
+    def forward(self, x):
+        for blk in self.net:
+            y = blk(x)
+            # 跨层连接通道维度上每个块的输入和输出
+            x = torch.cat((x, y), dim=1)
+        return x
+
+
+class Densenet(nn.Module):
+    def __init__(self, in_channels, num_classes) -> None:
+        super().__init__()
+        self.in_channels = in_channels
+        self.num_classes = num_classes
+        # DenseNet首先使用同ResNet一样的单卷积层和最大汇聚层
+        self.b1 = nn.Sequential(
+            nn.Conv2d(self.in_channels, 64, kernel_size=7, stride=2, padding=3),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+        )
+        # num_channels为当前的通道数
+        num_channels, growth_rate = 64, 32
+        num_convs_in_dense_blocks = [4, 4, 4, 4]
+        blks = []
+        for idx, num_conv in enumerate(num_convs_in_dense_blocks):
+            blks.append(DenseBlock(num_channels, growth_rate, num_conv))
+            # 上一个稠密块的输出通道数
+            num_channels += num_conv * growth_rate
+            # 在稠密块之间添加一个转换层，使通道数量减半
+            if idx != len(num_convs_in_dense_blocks) - 1:
+                blks.append(self._transition_block(num_channels, num_channels // 2))
+                num_channels = num_channels // 2
+                
+        self.b2 = nn.Sequential(*blks)
+        
+        self.b3 = nn.Sequential(nn.BatchNorm2d(num_channels), nn.ReLU(),
+                                nn.AdaptiveAvgPool2d((1, 1)),
+                                nn.Flatten(),
+                                nn.Linear(num_channels, self.num_classes))
+
+    # 过渡层
+    def _transition_block(self, in_channels, out_channels):
+        return nn.Sequential(
+            nn.BatchNorm2d(in_channels),
+            nn.ReLU(),
+            nn.Conv2d(in_channels, out_channels, kernel_size=1),
+            nn.AvgPool2d(kernel_size=2, stride=2)
+        )
+    
+    def forward(self, x):
+        x = self.b1(x)
+        x = self.b2(x)
+        x = self.b3(x)
+        return x
+    
+# net = Densenet(1, 10).cuda()
+# import torchinfo
+# torchinfo.summary(net, (1, 1, 224, 224))
+
+# 练习7.7.4
+from collections import OrderedDict
+
+class _DenseLayer(nn.Sequential):
+    def __init__(self, num_input_features, growth_rate, bn_size, drop_rate):
+        super(_DenseLayer, self).__init__()
+        self.add_module('norm1', nn.BatchNorm2d(num_input_features)),
+        self.add_module('relu1', nn.ReLU(inplace=True)),
+        self.add_module('conv1', nn.Conv2d(num_input_features, bn_size *
+                                           growth_rate, kernel_size=1, stride=1, bias=False)),
+        self.add_module('norm2', nn.BatchNorm2d(bn_size * growth_rate)),
+        self.add_module('relu2', nn.ReLU(inplace=True)),
+        self.add_module('conv2', nn.Conv2d(bn_size * growth_rate, growth_rate,
+                                           kernel_size=3, stride=1, padding=1, bias=False)),
+        self.drop_rate = drop_rate
+
+    def forward(self, x):
+        new_features = super(_DenseLayer, self).forward(x)
+        if self.drop_rate > 0:
+            new_features = F.dropout(new_features, p=self.drop_rate, training=self.training)
+        # 将输入输出两通道拼接
+        return torch.cat([x, new_features], 1)
+
+# 稠密块
+class _DenseBlock(nn.Sequential):
+    def __init__(self, num_layers, num_input_features, bn_size, growth_rate, drop_rate):
+        super(_DenseBlock, self).__init__()
+        for i in range(num_layers):
+            layer = _DenseLayer(num_input_features + i * growth_rate, growth_rate, bn_size, drop_rate)
+            self.add_module('denselayer%d' % (i + 1), layer)
+
+# 过渡层
+class _Transition(nn.Sequential):
+    def __init__(self, num_input_features, num_output_features):
+        super(_Transition, self).__init__()
+        self.add_module('norm', nn.BatchNorm2d(num_input_features))
+        self.add_module('relu', nn.ReLU(inplace=True))
+        self.add_module('conv', nn.Conv2d(num_input_features, num_output_features,
+                                          kernel_size=1, stride=1, bias=False))
+        self.add_module('pool', nn.AvgPool2d(kernel_size=2, stride=2))
+
+
+class DenseNet(nn.Module):
+    def __init__(self, in_channels = 3,growth_rate=32, block_config=(6, 12, 24, 16),
+                 num_init_features=64, bn_size=4, drop_rate=0, num_classes=1000):
+
+        super(DenseNet, self).__init__()
+        self.in_channels = in_channels
+        # 第一个卷积层
+        self.features = nn.Sequential(OrderedDict([
+            ('conv0', nn.Conv2d(self.in_channels, num_init_features, kernel_size=7, stride=2, padding=3, bias=False)),
+            ('norm0', nn.BatchNorm2d(num_init_features)),
+            ('relu0', nn.ReLU(inplace=True)),
+            ('pool0', nn.MaxPool2d(kernel_size=3, stride=2, padding=1)),
+        ]))
+
+        # 四层 依次经过稠密块和过渡层
+        num_features = num_init_features
+        for i, num_layers in enumerate(block_config):
+            block = _DenseBlock(num_layers=num_layers, num_input_features=num_features,
+                                bn_size=bn_size, growth_rate=growth_rate, drop_rate=drop_rate)
+            self.features.add_module('denseblock%d' % (i + 1), block)
+            num_features = num_features + num_layers * growth_rate
+            if i != len(block_config) - 1:
+                trans = _Transition(num_input_features=num_features, num_output_features=num_features // 2)
+                self.features.add_module('transition%d' % (i + 1), trans)
+                num_features = num_features // 2
+
+        # 最后一个bn层
+        self.features.add_module('norm5', nn.BatchNorm2d(num_features))
+
+        # 线性层
+        self.classifier = nn.Linear(num_features, num_classes)
+
+        # 网络初始化设置
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight.data)
+            elif isinstance(m, nn.BatchNorm2d):
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
+            elif isinstance(m, nn.Linear):
+                m.bias.data.zero_()
+
+    def forward(self, x):
+        features = self.features(x)
+        out = F.relu(features, inplace=True)
+        out = F.avg_pool2d(out, kernel_size=7, stride=1).view(features.size(0), -1)
+        out = self.classifier(out)
+        return out
+
+def densenet121(**kwargs):
+    model = DenseNet(3, num_init_features=64, growth_rate=32, block_config=(6, 12, 24, 16), **kwargs)
+    return model
+
+
+def densenet169(**kwargs):
+    model = DenseNet(3, num_init_features=64, growth_rate=32, block_config=(6, 12, 32, 32), **kwargs)
+    return model
+
+
+def densenet201(**kwargs):
+    model = DenseNet(3, num_init_features=64, growth_rate=32, block_config=(6, 12, 48, 32), **kwargs)
+    return model
+
+
+def densenet161(**kwargs):
+    model = DenseNet(3, num_init_features=96, growth_rate=48, block_config=(6, 12, 64, 48), **kwargs)
+    return model
+
+
+net = densenet121(num_classes=10).cuda()
+import torchinfo
+torchinfo.summary(net, (1, 3, 224, 224))

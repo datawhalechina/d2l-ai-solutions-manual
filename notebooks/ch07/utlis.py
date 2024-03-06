@@ -97,18 +97,18 @@ def draw_figures(pth:str,
             plt.ylabel('accuracy')
             bias = 0
             for x, y in label_list:
-                id_max = d[y].idxmax()
-                plt.annotate('max acc = %.4f'%(d[y][id_max]),
-                             (d[x][id_max], d[y][id_max]), xytext=(0, -50 - bias), textcoords='offset points',
+                max_index = d[y].idxmax()
+                plt.annotate(('max acc of {} = {:.4f}'.format(y, d[y][max_index])),
+                             (d[x][max_index], d[y][max_index]), xytext=(0, -50 - bias), textcoords='offset points',
                              bbox=bbox, arrowprops=arrowprops)
                 bias += 30
         elif 'loss' in title:
             plt.ylabel('loss')
             bias = 0
             for x, y in label_list:
-                id_min = d[y].idxmin()
-                plt.annotate('min loss = %.4f'%(d[y][id_min]),
-                             (d[x][id_min], d[y][id_min]), xytext=(0, 50 + bias), textcoords='offset points',
+                min_index = d[y].idxmin()
+                plt.annotate( ('min loss of {} = {:.4f}'.format(y, d[y][min_index])),
+                             (d[x][min_index], d[y][min_index]), xytext=(0, 50 + bias), textcoords='offset points',
                              bbox=bbox, arrowprops=arrowprops)
                 bias += 30
     plt.show()
